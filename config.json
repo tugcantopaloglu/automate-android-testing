@@ -6,6 +6,16 @@
     "bluestacks_adb_port": 5555,
     "bluestacks_exe_path": "",
     "bluestacks_instance_name": "",
+    "parallel_workers": [
+        {
+            "device_id": "emulator-5554",
+            "appium_port": 4723
+        },
+        {
+            "device_id": "emulator-5556",
+            "appium_port": 4724
+        }
+    ],
     "automation_steps": {
         "app_package": "com.example.app",
         "actions": [

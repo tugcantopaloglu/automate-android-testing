@@ -11,7 +11,7 @@ from appium.webdriver.common.appiumby import AppiumBy
 
 # TODO: The user needs to have an Appium server running on localhost:4723
 
-def get_appium_driver(emulator_name):
+def get_appium_driver(emulator_name, appium_port=4723):
     """Initializes and returns an Appium driver for the specified emulator."""
     options = UiAutomator2Options()
     options.platform_name = 'Android'
@@ -21,8 +21,9 @@ def get_appium_driver(emulator_name):
     # options.app = '/path/to/your/app.apk'
 
     try:
-        driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
-        logging.info(f"Appium driver initialized for {emulator_name}")
+        appium_url = f'http://127.0.0.1:{appium_port}'
+        driver = webdriver.Remote(appium_url, options=options)
+        logging.info(f"Appium driver initialized for {emulator_name} on port {appium_port}")
         return driver
     except Exception as e:
         logging.error(f"Error initializing Appium driver: {e}")
