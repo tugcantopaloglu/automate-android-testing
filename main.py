@@ -83,7 +83,7 @@ def main():
                 raise RuntimeError("Failed to get Appium driver. Is the Appium server running?")
 
             # Run the automation steps
-            run_automation(driver, email, password, group_link, beta_link)
+            run_automation(driver, email, password, group_link, beta_link, config)
 
         except Exception as e:
             print(f"An error occurred while processing account {email}: {e}")

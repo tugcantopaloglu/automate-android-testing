@@ -1,5 +1,24 @@
 {
     "android_sdk_path": "/path/to/your/android/sdk",
     "accounts_file": "accounts.csv",
-    "app_apk_path": "/path/to/your/app.apk"
+    "app_apk_path": "/path/to/your/app.apk",
+    "automation_steps": {
+        "app_package": "com.example.app",
+        "actions": [
+            {
+                "type": "click",
+                "description": "Click the main menu button",
+                "element_id": "com.example.app:id/menu_button"
+            },
+            {
+                "type": "wait",
+                "duration_seconds": 5
+            },
+            {
+                "type": "click",
+                "description": "Click the settings option",
+                "element_id": "com.example.app:id/settings_option"
+            }
+        ]
+    }
 }

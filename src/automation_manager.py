@@ -66,14 +66,35 @@ def run_automation(driver, email, password, group_link, beta_link):
         # TODO: Add steps to download and install the app from the Play Store
         print(f"Opened Beta link: {beta_link}")
 
-        # 4. Interact with the app
-        # This assumes the app is installed and has a package name
-        # driver.activate_app('com.example.app')
-        # time.sleep(5)
-        # TODO: Add steps to click menu icons
-        # element = driver.find_element(by=AppiumBy.ACCESSIBILITY_ID, value='Menu')
-        # element.click()
-        print("Simulating app interaction...")
+def run_automation(driver, email, password, group_link, beta_link, config):
+    """Runs the automation steps for a single account."""
+    try:
+        # ... (login and group joining logic remains the same) ...
+
+        # 4. Interact with the app based on config
+        app_package = config.get('automation_steps', {}).get('app_package')
+        actions = config.get('automation_steps', {}).get('actions', [])
+
+        if app_package and actions:
+            print(f"Activating app: {app_package}")
+            driver.activate_app(app_package)
+            time.sleep(5)
+
+            for action in actions:
+                action_type = action.get('type')
+                print(f"Performing action: {action.get('description', action_type)}")
+                if action_type == 'click':
+                    element_id = action.get('element_id')
+                    if element_id:
+                        element = driver.find_element(by=AppiumBy.ID, value=element_id)
+                        element.click()
+                        time.sleep(2)
+                elif action_type == 'wait':
+                    duration = action.get('duration_seconds', 5)
+                    time.sleep(duration)
+            print("Finished configured app interactions.")
+        else:
+            print("No configured app interactions found. Skipping.")
 
         # 5. Wait for 10 minutes
         print("Waiting for 10 minutes...")
@@ -107,13 +128,19 @@ def run_automation(driver, email, password, group_link, beta_link):
 
 if __name__ == '__main__':
     # This is for testing purposes.
-    # In the main app, these values will come from the accounts file.
-    test_emulator = 'emulator-5554' # Use the device id shown by 'adb devices'
+    # In the main app, these values will come from the accounts file and config.
+    test_emulator = 'emulator-5554'
     test_email = 'your-email@gmail.com'
     test_password = 'your-password'
     test_group_link = 'https://groups.google.com/g/your-group'
     test_beta_link = 'https://play.google.com/apps/testing/your.app.package'
+    test_config = {
+        'automation_steps': {
+            'app_package': 'com.example.app',
+            'actions': [] # No actions for this simple test
+        }
+    }
 
     appium_driver = get_appium_driver(test_emulator)
     if appium_driver:
-        run_automation(appium_driver, test_email, test_password, test_group_link, test_beta_link)
+        run_automation(appium_driver, test_email, test_password, test_group_link, test_beta_link, test_config)
