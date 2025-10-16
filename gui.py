@@ -45,6 +45,9 @@ class AutomationGUI(tk.Tk):
         save_button = ttk.Button(config_frame, text="Save Config", command=self.save_config)
         save_button.grid(row=len(config_keys), column=1, sticky=tk.E, padx=5, pady=10)
 
+        validate_button = ttk.Button(config_frame, text="Validate Setup", command=self.validate_setup)
+        validate_button.grid(row=len(config_keys), column=0, sticky=tk.W, padx=5, pady=10)
+
         # --- Control Panel ---
         control_frame = ttk.LabelFrame(main_frame, text="Control Panel", padding="10")
         control_frame.pack(fill=tk.X, pady=5)
@@ -129,6 +132,64 @@ class AutomationGUI(tk.Tk):
             webbrowser.open(f'file://{report_path}')
         else:
             messagebox.showinfo("Info", "report.html not found. Run an automation first.")
+
+    def validate_setup(self):
+        self.log_text.config(state='normal')
+        self.log_text.delete('1.0', tk.END)
+        self.log_text.insert(tk.END, "--- Running Configuration Validation ---\n")
+        self.log_text.config(state='disabled')
+
+        errors = []
+
+        # 1. Check SDK Path
+        sdk_path = self.config_vars['android_sdk_path'].get()
+        if not sdk_path or not os.path.isdir(sdk_path):
+            errors.append("Android SDK path is invalid or not set.")
+        elif not os.path.exists(os.path.join(sdk_path, 'platform-tools', 'adb.exe')):
+            errors.append("'adb.exe' not found in SDK 'platform-tools' directory.")
+        self.log_text.config(state='normal')
+        self.log_text.insert(tk.END, f"[CHECK] Android SDK Path: {'FAIL' if any('SDK' in e for e in errors) else 'OK'}\n")
+        self.log_text.config(state='disabled')
+
+        # 2. Check Accounts File
+        accounts_file = self.config_data.get('accounts_file', 'accounts.csv')
+        if not os.path.exists(accounts_file):
+            errors.append(f"Accounts file '{accounts_file}' not found.")
+        else:
+            with open(accounts_file, 'r') as f:
+                if len(f.readlines()) <= 1:
+                    errors.append("Accounts file is empty.")
+        self.log_text.config(state='normal')
+        self.log_text.insert(tk.END, f"[CHECK] Accounts File: {'FAIL' if any('Accounts' in e for e in errors) else 'OK'}\n")
+        self.log_text.config(state='disabled')
+
+        # 3. Check Workers
+        workers = self.config_data.get('parallel_workers', [])
+        if not workers:
+            errors.append("No parallel_workers defined in config.json.")
+        else:
+            import socket
+            for i, worker in enumerate(workers):
+                port = worker.get('appium_port')
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    if s.connect_ex(('127.0.0.1', port)) != 0:
+                        errors.append(f"Worker {i+1}: Appium server not listening on port {port}.")
+        self.log_text.config(state='normal')
+        self.log_text.insert(tk.END, f"[CHECK] Appium Workers: {'FAIL' if any('Worker' in e or 'parallel_workers' in e for e in errors) else 'OK'}\n")
+        self.log_text.config(state='disabled')
+
+        # --- Final Result ---
+        self.log_text.config(state='normal')
+        if errors:
+            self.log_text.insert(tk.END, "\n--- VALIDATION FAILED ---\n")
+            for error in errors:
+                self.log_text.insert(tk.END, f"- {error}\n")
+            messagebox.showerror("Validation Failed", "Configuration has errors. Check logs for details.")
+        else:
+            self.log_text.insert(tk.END, "\n--- VALIDATION SUCCESSFUL ---\n")
+            messagebox.showinfo("Validation Successful", "Configuration appears to be correct.")
+        self.log_text.config(state='disabled')
+
 
 if __name__ == "__main__":
     app = AutomationGUI()
