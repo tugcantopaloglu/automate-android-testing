@@ -2,6 +2,8 @@
     "android_sdk_path": "/path/to/your/android/sdk",
     "accounts_file": "accounts.csv",
     "app_apk_path": "/path/to/your/app.apk",
+    "emulator_type": "sdk",
+    "bluestacks_adb_port": 5555,
     "automation_steps": {
         "app_package": "com.example.app",
         "actions": [

@@ -1,2 +1,23 @@
 2025-10-16 13:44:24,116 [INFO] --- Starting Automation Framework ---
 2025-10-16 13:44:24,128 [WARNING] No accounts found in the accounts file. Exiting.
+2025-10-16 13:54:52,374 [INFO] --- Starting Automation Framework ---
+2025-10-16 13:54:52,395 [WARNING] No accounts found in the accounts file. Exiting.
+2025-10-16 13:55:07,111 [INFO] --- Starting Automation Framework ---
+2025-10-16 13:55:07,159 [INFO] Found 1 accounts to process.
+2025-10-16 13:55:07,159 [INFO] 
+--- Processing Account 1/1: dummy@test.com ---
+2025-10-16 13:55:07,159 [ERROR] An error occurred while processing account dummy@test.com: name 'connect_to_bluestacks' is not defined
+2025-10-16 13:55:07,159 [WARNING] Skipping to the next account.
+2025-10-16 13:55:27,757 [INFO] --- Starting Automation Framework ---
+2025-10-16 13:55:27,757 [INFO] Found 1 accounts to process.
+2025-10-16 13:55:27,757 [INFO] 
+--- Processing Account 1/1: dummy@test.com ---
+2025-10-16 13:55:27,757 [INFO] Attempting to connect to BlueStacks at localhost:5555...
+2025-10-16 13:55:27,757 [ERROR] Error connecting to BlueStacks: [WinError 2] The system cannot find the file specified
+2025-10-16 13:55:27,757 [ERROR] An error occurred while processing account dummy@test.com: Failed to connect to BlueStacks on port 5555. Is it running?
+2025-10-16 13:55:27,757 [WARNING] Skipping to the next account.
+2025-10-16 13:55:27,757 [INFO] Disconnecting from BlueStacks at localhost:5555...
+2025-10-16 13:55:27,757 [ERROR] Error disconnecting from BlueStacks: [WinError 2] The system cannot find the file specified
+2025-10-16 13:55:27,757 [INFO] Waiting 15 seconds for cleanup...
+2025-10-16 13:55:42,772 [INFO] 
+--- All Accounts Processed. Automation Finished. ---

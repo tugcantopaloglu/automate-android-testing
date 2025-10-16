@@ -66,6 +66,36 @@ def stop_emulator(sdk_path, emulator_name):
         logging.error(f"Error stopping emulator: {e}")
         return False
 
+def connect_to_bluestacks(sdk_path, port):
+    """Connects ADB to a BlueStacks instance running on a specific port."""
+    adb_path = get_adb_path(sdk_path)
+    device_id = f"localhost:{port}"
+    logging.info(f"Attempting to connect to BlueStacks at {device_id}...")
+    try:
+        result = subprocess.run([adb_path, 'connect', device_id], capture_output=True, text=True, check=True)
+        if "connected" in result.stdout:
+            logging.info(f"Successfully connected to BlueStacks: {device_id}")
+            return device_id
+        else:
+            logging.error(f"Failed to connect to BlueStacks. Response: {result.stdout}")
+            return None
+    except (FileNotFoundError, subprocess.CalledProcessError) as e:
+        logging.error(f"Error connecting to BlueStacks: {e}")
+        return None
+
+def disconnect_from_bluestacks(sdk_path, port):
+    """Disconnects ADB from a BlueStacks instance."""
+    adb_path = get_adb_path(sdk_path)
+    device_id = f"localhost:{port}"
+    logging.info(f"Disconnecting from BlueStacks at {device_id}...")
+    try:
+        subprocess.run([adb_path, 'disconnect', device_id], check=True)
+        logging.info(f"Successfully disconnected from {device_id}")
+        return True
+    except (FileNotFoundError, subprocess.CalledProcessError) as e:
+        logging.error(f"Error disconnecting from BlueStacks: {e}")
+        return False
+
 if __name__ == '__main__':
     from logger_setup import setup_logger
     setup_logger()

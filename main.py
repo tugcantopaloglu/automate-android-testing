@@ -7,7 +7,7 @@ import os
 import time
 
 from src.config_reader import read_config
-from src.emulator_manager import list_emulators, start_emulator, stop_emulator
+from src.emulator_manager import list_emulators, start_emulator, stop_emulator, connect_to_bluestacks, disconnect_from_bluestacks, get_running_devices
 from src.automation_manager import get_appium_driver, run_automation
 
 import logging
@@ -38,59 +38,78 @@ def main():
 
     logging.info(f"Found {len(accounts)} accounts to process.")
 
-    # 3. Get available emulator
-    emulators = list_emulators(sdk_path)
-    if not emulators:
-        logging.error("No emulators found. Please create an emulator in Android Studio.")
-        return
-    emulator_name = emulators[0]
+    emulator_type = config.get('emulator_type', 'sdk')
 
     # 4. Loop through each account and run the automation
     for i, account in enumerate(accounts):
-        # ... (account processing logic) ...
+        email = account.get('email')
+        password = account.get('password')
+        group_link = account.get('group_link')
+        beta_link = 'https://play.google.com/apps/testing/your.app.package' # Placeholder
+
         logging.info(f"\n--- Processing Account {i+1}/{len(accounts)}: {email} ---")
 
+        device_id = None
+        driver = None
+
         try:
-            # Dynamically detect the new emulator instance
-            devices_before = get_running_devices(sdk_path)
-            logging.info(f"Running devices before start: {devices_before}")
+            # --- Workflow for different emulator types ---
+            if emulator_type == 'sdk':
+                # Get available emulator
+                emulators = list_emulators(sdk_path)
+                if not emulators:
+                    raise RuntimeError("No SDK emulators found.")
+                emulator_name = emulators[0]
 
-            # Start the emulator
-            if not start_emulator(sdk_path, emulator_name):
-                raise RuntimeError("Failed to start emulator.")
+                # Dynamically detect the new emulator instance
+                devices_before = get_running_devices(sdk_path)
+                logging.info(f"Running devices before start: {devices_before}")
+                if not start_emulator(sdk_path, emulator_name):
+                    raise RuntimeError("Failed to start SDK emulator.")
+                
+                logging.info("Waiting for 30 seconds for emulator to appear in adb...")
+                time.sleep(30)
+                devices_after = get_running_devices(sdk_path)
+                logging.info(f"Running devices after start: {devices_after}")
+                device_id = next(iter(set(devices_after) - set(devices_before)), None)
+                if not device_id:
+                    raise RuntimeError("Failed to detect new SDK emulator device ID.")
+
+            elif emulator_type == 'bluestacks':
+                port = config.get('bluestacks_adb_port', 5555)
+                device_id = connect_to_bluestacks(sdk_path, port)
+                if not device_id:
+                    raise RuntimeError(f"Failed to connect to BlueStacks on port {port}. Is it running?")
             
-            logging.info("Waiting for 30 seconds for emulator to appear in adb...")
+            else:
+                raise ValueError(f"Unsupported emulator_type in config: {emulator_type}")
+
+            # --- Common workflow for all emulator types ---
+            logging.info(f"Detected device ID: {device_id}")
+            logging.info("Waiting 30 seconds for device to be ready...")
             time.sleep(30)
 
-            devices_after = get_running_devices(sdk_path)
-            logging.info(f"Running devices after start: {devices_after}")
-            
-            new_device_id = next(iter(set(devices_after) - set(devices_before)), None)
-
-            if not new_device_id:
-                raise RuntimeError("Failed to detect new emulator device ID.")
-
-            logging.info(f"Detected new emulator device ID: {new_device_id}")
-
-            logging.info("Waiting 30 more seconds for emulator to fully boot...")
-            time.sleep(30)
-
-            # Get Appium driver
-            driver = get_appium_driver(new_device_id)
+            driver = get_appium_driver(device_id)
             if not driver:
                 raise RuntimeError("Failed to get Appium driver. Is the Appium server running?")
 
-            # Run the automation steps
             run_automation(driver, email, password, group_link, beta_link, config)
 
         except Exception as e:
             logging.error(f"An error occurred while processing account {email}: {e}")
             logging.warning("Skipping to the next account.")
         finally:
-            # Stop the emulator
-            stop_emulator(sdk_path, emulator_name)
-            logging.info("Waiting 30 seconds for emulator to shut down completely...")
-            time.sleep(30)
+            # --- Cleanup for different emulator types ---
+            if driver:
+                driver.quit()
+            
+            if emulator_type == 'sdk' and 'emulator_name' in locals():
+                stop_emulator(sdk_path, emulator_name)
+            elif emulator_type == 'bluestacks' and 'port' in locals():
+                disconnect_from_bluestacks(sdk_path, port)
+            
+            logging.info("Waiting 15 seconds for cleanup...")
+            time.sleep(15)
 
     logging.info("\n--- All Accounts Processed. Automation Finished. ---")
 
