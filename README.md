@@ -1,6 +1,10 @@
 # ✨ Android Automation Framework ✨
 
 <p align="center">
+  <img src="assets/gui_main_window.png" alt="Main GUI Window" width="700">
+</p>
+
+<p align="center">
   <b>Tired of manually running the same tests over and over for your Android apps? This tool is for you!</b>
 </p>
 
@@ -16,6 +20,9 @@ This isn't just a simple script. It's a full application built to make your life
 - **⚡ Parallel Testing:** Run tests on multiple devices at the same time to get through your accounts list in record time.
 - **⚙️ Multi-Emulator Support:** Works with standard Android SDK emulators and BlueStacks.
 - **📊 Professional HTML Reports:** Get a clean, beautiful report after every run showing what passed, what failed, and why.
+
+  <img src="assets/html_report_sample.png" alt="HTML Report Sample" width="700">
+
 - **📸 Automatic Failure Screenshots:** When something goes wrong, the tool automatically saves a screenshot, so you can see exactly what happened without guessing.
 - **🔧 Fully Configurable:** Define your own test steps, from simple clicks to more complex interactions, all within a JSON config file.
 
