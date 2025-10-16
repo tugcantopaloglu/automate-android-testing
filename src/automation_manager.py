@@ -50,6 +50,8 @@ def run_automation(driver, email, password, group_link, beta_link):
         driver.find_element(by=AppiumBy.ID, value='com.google.android.gms:id/passwordNext').click()
         time.sleep(10) # Wait for login to complete
 
+        # ... (previous automation steps) ...
+
         print("Login attempt finished. Now joining group...")
 
         # 2. Join the Google Group
@@ -81,6 +83,23 @@ def run_automation(driver, email, password, group_link, beta_link):
 
     except Exception as e:
         print(f"An error occurred during automation: {e}")
+        
+        # Take screenshot on failure
+        screenshots_dir = 'screenshots'
+        if not os.path.exists(screenshots_dir):
+            os.makedirs(screenshots_dir)
+        
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        screenshot_path = os.path.join(screenshots_dir, f"failure_{timestamp}.png")
+        
+        try:
+            if driver:
+                driver.save_screenshot(screenshot_path)
+                print(f"Screenshot saved to {screenshot_path}")
+        except Exception as screenshot_e:
+            print(f"Failed to save screenshot: {screenshot_e}")
+            
+        raise # Re-raise the exception to be caught by the main loop
     finally:
         if driver:
             driver.quit()
