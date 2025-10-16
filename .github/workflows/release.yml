@@ -1,0 +1,60 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller flake8
+
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Build executable with PyInstaller
+      run: pyinstaller --onefile --windowed --name AutomationFramework gui.py
+
+    - name: Create Release and Upload Asset
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: pwsh
+      run: |
+        $tagName = "release-$(Get-Date -Format 'yyyy-MM-dd-HH-mm-ss')"
+        $releaseName = "Automation Framework Release $tagName"
+        $exePath = "dist/AutomationFramework.exe"
+
+        # Create Release
+        $release = New-Object System.Net.WebClient
+        $release.Headers.Add("Authorization", "token $env:GITHUB_TOKEN")
+        $release.Headers.Add("Content-Type", "application/json")
+        $releaseBody = @{ tag_name = $tagName; name = $releaseName; body = "Automated release of the Automation Framework executable."; draft = $false; prerelease = $false }
+        $releaseJson = $releaseBody | ConvertTo-Json
+        $uploadUrl = (Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases" -Method Post -Body $releaseJson -Headers $release.Headers).upload_url
+
+        # Upload Executable Asset
+        $asset = New-Object System.Net.WebClient
+        $asset.Headers.Add("Authorization", "token $env:GITHUB_TOKEN")
+        $asset.Headers.Add("Content-Type", "application/octet-stream")
+        $uploadUrl = $uploadUrl.Replace("{?name,label}", "?name=AutomationFramework.exe")
+        $asset.UploadFile($uploadUrl, $exePath)
+        Write-Host "Successfully created release and uploaded asset."
