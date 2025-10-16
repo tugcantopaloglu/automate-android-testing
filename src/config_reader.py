@@ -1,12 +1,21 @@
 import json
+import logging
 
 def read_config():
     """Reads the configuration file and returns the settings."""
-    with open('config.json', 'r') as f:
-        return json.load(f)
+    try:
+        with open('config.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logging.error("Configuration file 'config.json' not found.")
+        return {}
 
 if __name__ == '__main__':
+    # This is for testing purposes.
+    from logger_setup import setup_logger
+    setup_logger()
     config = read_config()
-    print("Configuration loaded:")
-    for key, value in config.items():
-        print(f"  {key}: {value}")
+    if config:
+        logging.info("Configuration loaded:")
+        for key, value in config.items():
+            logging.info(f"  {key}: {value}")
