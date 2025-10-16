@@ -1,0 +1,5 @@
+{
+    "android_sdk_path": "/path/to/your/android/sdk",
+    "accounts_file": "accounts.csv",
+    "app_apk_path": "/path/to/your/app.apk"
+}
