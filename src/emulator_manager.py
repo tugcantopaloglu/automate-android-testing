@@ -66,6 +66,21 @@ def stop_emulator(sdk_path, emulator_name):
         logging.error(f"Error stopping emulator: {e}")
         return False
 
+def start_bluestacks(exe_path, instance_name):
+    """Starts a specific BlueStacks instance from its executable path."""
+    logging.info(f"Attempting to start BlueStacks instance '{instance_name}'...")
+    try:
+        command = [exe_path, '--instance', instance_name]
+        subprocess.Popen(command)
+        logging.info("BlueStacks start command issued.")
+        return True
+    except FileNotFoundError:
+        logging.error(f"BlueStacks executable not found at '{exe_path}'. Please check your config.json.")
+        return False
+    except Exception as e:
+        logging.error(f"An error occurred while trying to start BlueStacks: {e}")
+        return False
+
 def connect_to_bluestacks(sdk_path, port):
     """Connects ADB to a BlueStacks instance running on a specific port."""
     adb_path = get_adb_path(sdk_path)

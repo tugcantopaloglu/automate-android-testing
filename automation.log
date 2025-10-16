@@ -21,3 +21,16 @@
 2025-10-16 13:55:27,757 [INFO] Waiting 15 seconds for cleanup...
 2025-10-16 13:55:42,772 [INFO] 
 --- All Accounts Processed. Automation Finished. ---
+2025-10-16 13:57:19,246 [INFO] --- Starting Automation Framework ---
+2025-10-16 13:57:19,271 [INFO] Found 1 accounts to process.
+2025-10-16 13:57:19,271 [INFO] 
+--- Processing Account 1/1: dummy@test.com ---
+2025-10-16 13:57:19,271 [INFO] Attempting to connect to BlueStacks at localhost:5555...
+2025-10-16 13:57:19,271 [ERROR] Error connecting to BlueStacks: [WinError 2] The system cannot find the file specified
+2025-10-16 13:57:19,271 [ERROR] An error occurred while processing account dummy@test.com: Failed to connect to BlueStacks on port 5555. Is it running?
+2025-10-16 13:57:19,271 [WARNING] Skipping to the next account.
+2025-10-16 13:57:19,271 [INFO] Disconnecting from BlueStacks at localhost:5555...
+2025-10-16 13:57:19,271 [ERROR] Error disconnecting from BlueStacks: [WinError 2] The system cannot find the file specified
+2025-10-16 13:57:19,271 [INFO] Waiting 15 seconds for cleanup...
+2025-10-16 13:57:34,278 [INFO] 
+--- All Accounts Processed. Automation Finished. ---

@@ -7,7 +7,7 @@ import os
 import time
 
 from src.config_reader import read_config
-from src.emulator_manager import list_emulators, start_emulator, stop_emulator, connect_to_bluestacks, disconnect_from_bluestacks, get_running_devices
+from src.emulator_manager import list_emulators, start_emulator, stop_emulator, connect_to_bluestacks, disconnect_from_bluestacks, get_running_devices, start_bluestacks
 from src.automation_manager import get_appium_driver, run_automation
 
 import logging
@@ -76,6 +76,16 @@ def main():
                     raise RuntimeError("Failed to detect new SDK emulator device ID.")
 
             elif emulator_type == 'bluestacks':
+                # Check for auto-start config
+                exe_path = config.get('bluestacks_exe_path')
+                instance_name = config.get('bluestacks_instance_name')
+
+                if exe_path and instance_name:
+                    if not start_bluestacks(exe_path, instance_name):
+                        raise RuntimeError("Failed to issue BlueStacks start command.")
+                    logging.info("Waiting 45 seconds for BlueStacks to start before connecting...")
+                    time.sleep(45)
+
                 port = config.get('bluestacks_adb_port', 5555)
                 device_id = connect_to_bluestacks(sdk_path, port)
                 if not device_id:

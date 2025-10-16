@@ -4,6 +4,8 @@
     "app_apk_path": "/path/to/your/app.apk",
     "emulator_type": "sdk",
     "bluestacks_adb_port": 5555,
+    "bluestacks_exe_path": "",
+    "bluestacks_instance_name": "",
     "automation_steps": {
         "app_package": "com.example.app",
         "actions": [
