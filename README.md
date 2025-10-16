@@ -1,7 +1,7 @@
 # ✨ Android Automation Framework ✨
 
 <p align="center">
-  <img src="assets/gui_main_window.png" alt="Main GUI Window" width="700">
+  <img src="screenshots/gui_main_window.png" alt="Main GUI Window" width="700">
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@ This isn't just a simple script. It's a full application built to make your life
 - **⚙️ Multi-Emulator Support:** Works with standard Android SDK emulators and BlueStacks.
 - **📊 Professional HTML Reports:** Get a clean, beautiful report after every run showing what passed, what failed, and why.
 
-  <img src="assets/html_report_sample.png" alt="HTML Report Sample" width="700">
+  <img src="screenshots/html_report_sample.png" alt="HTML Report Sample" width="700">
 
 - **📸 Automatic Failure Screenshots:** When something goes wrong, the tool automatically saves a screenshot, so you can see exactly what happened without guessing.
 - **🔧 Fully Configurable:** Define your own test steps, from simple clicks to more complex interactions, all within a JSON config file.
