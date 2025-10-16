@@ -41,7 +41,6 @@ def main():
         print("No emulators found. Please create an emulator in Android Studio.")
         return
     emulator_name = emulators[0]
-    emulator_device_id = 'emulator-5554' # This is a common default, but can change.
 
     # 4. Loop through each account and run the automation
     for i, account in enumerate(accounts):
@@ -54,15 +53,32 @@ def main():
         print(f"\n--- Processing Account {i+1}/{len(accounts)}: {email} ---")
 
         try:
+            # Dynamically detect the new emulator instance
+            devices_before = get_running_devices(sdk_path)
+            print(f"Running devices before start: {devices_before}")
+
             # Start the emulator
             if not start_emulator(sdk_path, emulator_name):
                 raise RuntimeError("Failed to start emulator.")
             
-            print("Waiting 60 seconds for emulator to fully boot...")
-            time.sleep(60)
+            print("Waiting for 30 seconds for emulator to appear in adb...")
+            time.sleep(30)
+
+            devices_after = get_running_devices(sdk_path)
+            print(f"Running devices after start: {devices_after}")
+            
+            new_device_id = next(iter(set(devices_after) - set(devices_before)), None)
+
+            if not new_device_id:
+                raise RuntimeError("Failed to detect new emulator device ID.")
+
+            print(f"Detected new emulator device ID: {new_device_id}")
+
+            print("Waiting 30 more seconds for emulator to fully boot...")
+            time.sleep(30)
 
             # Get Appium driver
-            driver = get_appium_driver(emulator_device_id)
+            driver = get_appium_driver(new_device_id)
             if not driver:
                 raise RuntimeError("Failed to get Appium driver. Is the Appium server running?")
 

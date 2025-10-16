@@ -38,35 +38,37 @@ def start_emulator(sdk_path, emulator_name):
         print(f"Error: 'emulator.exe' not found at {emulator_path}.")
         return False
 
+def get_running_devices(sdk_path):
+    """Returns a list of running emulator device IDs."""
+    adb_path = get_adb_path(sdk_path)
+    try:
+        result = subprocess.run([adb_path, 'devices'], capture_output=True, text=True, check=True)
+        devices = result.stdout.strip().split('\n')[1:] # Skip header
+        device_ids = [line.split('\t')[0] for line in devices if 'emulator' in line]
+        return device_ids
+    except (FileNotFoundError, subprocess.CalledProcessError) as e:
+        print(f"Error getting running devices: {e}")
+        return []
+
 def stop_emulator(sdk_path, emulator_name):
     """Stops a running Android emulator."""
-    adb_path = get_adb_path(sdk_path)
     print(f"Stopping emulator: {emulator_name}...")
     try:
-        # The device id for an emulator is usually emulator-5554, emulator-5556, etc.
-        # We need to find the correct device id for the given emulator name.
-        # This is a simplification. A more robust solution would map avd name to device id.
-        result = subprocess.run([adb_path, 'devices'], capture_output=True, text=True, check=True)
-        devices = result.stdout.strip().split('\n')[1:] # Skip the header
-        emulator_device = None
-        for device in devices:
-            if 'emulator' in device:
-                emulator_device = device.split('\t')[0]
-                break # Stop at the first found emulator
+        # Find the first available emulator device and kill it.
+        # This is a simplification. A more robust solution would map avd name to a specific device id.
+        device_to_stop = next(iter(get_running_devices(sdk_path)), None)
 
-        if emulator_device:
-            subprocess.run([adb_path, '-s', emulator_device, 'emu', 'kill'], check=True)
-            print(f"Emulator {emulator_name} ({emulator_device}) stopped.")
+        if device_to_stop:
+            adb_path = get_adb_path(sdk_path)
+            subprocess.run([adb_path, '-s', device_to_stop, 'emu', 'kill'], check=True)
+            print(f"Emulator {emulator_name} ({device_to_stop}) stopped.")
             return True
         else:
             print("No running emulator found to stop.")
             return False
 
-    except FileNotFoundError:
-        print(f"Error: 'adb.exe' not found at {adb_path}.")
-        return False
-    except subprocess.CalledProcessError as e:
-        print(f"Error stopping emulator: {e.stderr}")
+    except Exception as e:
+        print(f"Error stopping emulator: {e}")
         return False
 
 if __name__ == '__main__':
