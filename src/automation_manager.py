@@ -28,7 +28,7 @@ def get_appium_driver(emulator_name):
         logging.error(f"Error initializing Appium driver: {e}")
         return None
 
-def run_automation(driver, email, password, group_link, beta_link, config):
+def run_automation(driver, email, password, group_link, beta_link, config, result_details):
     """Runs the automation steps for a single account."""
     try:
         logging.info("Starting automation...")
@@ -112,6 +112,7 @@ def run_automation(driver, email, password, group_link, beta_link, config):
             if driver:
                 driver.save_screenshot(screenshot_path)
                 logging.info(f"Screenshot saved to {screenshot_path}")
+                result_details['screenshot_path'] = screenshot_path # Update the result dict
         except Exception as screenshot_e:
             logging.error(f"Failed to save screenshot: {screenshot_e}")
             
@@ -140,4 +141,6 @@ if __name__ == '__main__':
 
     appium_driver = get_appium_driver(test_emulator)
     if appium_driver:
-        run_automation(appium_driver, test_email, test_password, test_group_link, test_beta_link, test_config)
+        # A dummy result dict for testing
+        dummy_result_details = {}
+        run_automation(appium_driver, test_email, test_password, test_group_link, test_beta_link, test_config, dummy_result_details)

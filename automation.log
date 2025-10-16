@@ -34,3 +34,20 @@
 2025-10-16 13:57:19,271 [INFO] Waiting 15 seconds for cleanup...
 2025-10-16 13:57:34,278 [INFO] 
 --- All Accounts Processed. Automation Finished. ---
+2025-10-16 15:35:55,186 [INFO] --- Starting Automation Framework ---
+2025-10-16 15:35:55,186 [INFO] Found 1 accounts to process.
+2025-10-16 15:35:55,186 [INFO] 
+--- Processing Account 1/1: dummy@test.com ---
+2025-10-16 15:35:55,186 [ERROR] 'emulator.exe' not found at /path/to/your/android/sdk\emulator\emulator. Please check your Android SDK path in config.json.
+2025-10-16 15:35:55,186 [ERROR] An error occurred: No SDK emulators found.
+2025-10-16 15:35:55,186 [INFO] Cleanup complete. Waiting 15s...
+2025-10-16 15:36:21,454 [INFO] --- Starting Automation Framework ---
+2025-10-16 15:36:21,454 [INFO] Found 1 accounts to process.
+2025-10-16 15:36:21,454 [INFO] 
+--- Processing Account 1/1: dummy@test.com ---
+2025-10-16 15:36:21,454 [ERROR] 'emulator.exe' not found at /path/to/your/android/sdk\emulator\emulator. Please check your Android SDK path in config.json.
+2025-10-16 15:36:21,454 [ERROR] An error occurred: No SDK emulators found.
+2025-10-16 15:36:21,454 [INFO] Cleanup complete. Waiting 15s...
+2025-10-16 15:36:36,469 [INFO] Successfully generated HTML report: report.html
+2025-10-16 15:36:36,469 [INFO] 
+--- All Accounts Processed. Automation Finished. ---
