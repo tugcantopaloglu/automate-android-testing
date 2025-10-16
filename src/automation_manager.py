@@ -26,24 +26,45 @@ def get_appium_driver(emulator_name):
         print(f"Error initializing Appium driver: {e}")
         return None
 
-def run_automation(driver, group_link, beta_link):
+def run_automation(driver, email, password, group_link, beta_link):
     """Runs the automation steps for a single account."""
     try:
         print("Starting automation...")
-        # 1. Open Google Group link
-        # This is a simplified example. Real implementation will be more complex.
+        # 1. Open Google Group link and log in
+        driver.get('https://accounts.google.com') # Go directly to login page
+        time.sleep(5)
+
+        # Enter email
+        # NOTE: The resource-id 'identifierId' is a placeholder.
+        email_field = driver.find_element(by=AppiumBy.ID, value='com.google.android.gms:id/identifierId')
+        email_field.send_keys(email)
+        # NOTE: The resource-id for the 'Next' button is a placeholder.
+        driver.find_element(by=AppiumBy.ID, value='com.google.android.gms:id/identifierNext').click()
+        time.sleep(5)
+
+        # Enter password
+        # NOTE: The resource-id for the password field is a placeholder.
+        password_field = driver.find_element(by=AppiumBy.ID, value='com.google.android.gms:id/password')
+        password_field.send_keys(password)
+        # NOTE: The resource-id for the 'Next' button is a placeholder.
+        driver.find_element(by=AppiumBy.ID, value='com.google.android.gms:id/passwordNext').click()
+        time.sleep(10) # Wait for login to complete
+
+        print("Login attempt finished. Now joining group...")
+
+        # 2. Join the Google Group
         driver.get(group_link)
         time.sleep(5) # Wait for page to load
-        # TODO: Add steps to log in and join the group
+        # TODO: Add logic to find and click the 'Join Group' button.
         print(f"Opened Google Group link: {group_link}")
 
-        # 2. Open Beta link
+        # 3. Open Beta link
         driver.get(beta_link)
         time.sleep(5) # Wait for page to load
         # TODO: Add steps to download and install the app from the Play Store
         print(f"Opened Beta link: {beta_link}")
 
-        # 3. Interact with the app
+        # 4. Interact with the app
         # This assumes the app is installed and has a package name
         # driver.activate_app('com.example.app')
         # time.sleep(5)
@@ -52,7 +73,7 @@ def run_automation(driver, group_link, beta_link):
         # element.click()
         print("Simulating app interaction...")
 
-        # 4. Wait for 10 minutes
+        # 5. Wait for 10 minutes
         print("Waiting for 10 minutes...")
         time.sleep(600)
 
@@ -69,9 +90,11 @@ if __name__ == '__main__':
     # This is for testing purposes.
     # In the main app, these values will come from the accounts file.
     test_emulator = 'emulator-5554' # Use the device id shown by 'adb devices'
+    test_email = 'your-email@gmail.com'
+    test_password = 'your-password'
     test_group_link = 'https://groups.google.com/g/your-group'
     test_beta_link = 'https://play.google.com/apps/testing/your.app.package'
 
     appium_driver = get_appium_driver(test_emulator)
     if appium_driver:
-        run_automation(appium_driver, test_group_link, test_beta_link)
+        run_automation(appium_driver, test_email, test_password, test_group_link, test_beta_link)
