@@ -33,26 +33,11 @@ jobs:
       run: pyinstaller --onefile --windowed --name AutomationFramework gui.py
 
     - name: Create Release and Upload Asset
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/AutomationFramework.exe
+        tag_name: "release-${{ github.run_number }}"
+        name: "Automation Framework Release v${{ github.run_number }}"
+        body: "Automated release of the Automation Framework executable."
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      shell: pwsh
-      run: |
-        $tagName = "release-$(Get-Date -Format 'yyyy-MM-dd-HH-mm-ss')"
-        $releaseName = "Automation Framework Release $tagName"
-        $exePath = "dist/AutomationFramework.exe"
-
-        # Create Release
-        $release = New-Object System.Net.WebClient
-        $release.Headers.Add("Authorization", "token $env:GITHUB_TOKEN")
-        $release.Headers.Add("Content-Type", "application/json")
-        $releaseBody = @{ tag_name = $tagName; name = $releaseName; body = "Automated release of the Automation Framework executable."; draft = $false; prerelease = $false }
-        $releaseJson = $releaseBody | ConvertTo-Json
-        $uploadUrl = (Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}/releases" -Method Post -Body $releaseJson -Headers $release.Headers).upload_url
-
-        # Upload Executable Asset
-        $asset = New-Object System.Net.WebClient
-        $asset.Headers.Add("Authorization", "token $env:GITHUB_TOKEN")
-        $asset.Headers.Add("Content-Type", "application/octet-stream")
-        $uploadUrl = $uploadUrl.Replace("{?name,label}", "?name=AutomationFramework.exe")
-        $asset.UploadFile($uploadUrl, $exePath)
-        Write-Host "Successfully created release and uploaded asset."
