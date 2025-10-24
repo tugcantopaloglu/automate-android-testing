@@ -1,4 +1,4 @@
-# ✨ Android Automation Framework ✨
+# Android Automation Framework
 
 <p align="center">
   <img src="screenshots/gui_main_window.png" alt="Main GUI Window" width="700">
