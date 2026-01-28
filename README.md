@@ -1,108 +1,91 @@
-# Android Automation Framework
+# Android Beta Testing Automation
 
-<p align="center">
-  <img src="screenshots/gui_main_window.png" alt="Main GUI Window" width="700">
-</p>
+Automate Google Play's closed testing requirement (20 testers for 14 days).
 
-<p align="center">
-  <b>Tired of manually running the same tests over and over for your Android apps? This tool is for you!</b>
-</p>
+## Features
 
----
+- Parallel testing on multiple emulators
+- Google account login automation
+- Google Groups join automation
+- Play Store beta acceptance
+- App install and interaction
+- HTML reports with failure screenshots
 
-This project provides a powerful, GUI-driven framework to automate the boring parts of beta testing. It's designed to be easy to use, configurable, and scalable, whether you're a solo developer or part of a larger team.
+## Setup
 
-## 🤔 So, What Can It Do?
+### Prerequisites
 
-This isn't just a simple script. It's a full application built to make your life easier. Here's what's under the hood:
+- Python 3.8+
+- Android SDK with emulators
+- Appium Server (`npm install -g appium`)
+- Chrome on emulators
 
-- **🖥️ Sleek GUI:** No more command-line hassles. Manage and run everything from a simple, intuitive user interface.
-- **⚡ Parallel Testing:** Run tests on multiple devices at the same time to get through your accounts list in record time.
-- **⚙️ Multi-Emulator Support:** Works with standard Android SDK emulators and BlueStacks.
-- **📊 Professional HTML Reports:** Get a clean, beautiful report after every run showing what passed, what failed, and why.
-
-  <img src="screenshots/html_report_sample.png" alt="HTML Report Sample" width="700">
-
-- **📸 Automatic Failure Screenshots:** When something goes wrong, the tool automatically saves a screenshot, so you can see exactly what happened without guessing.
-- **🔧 Fully Configurable:** Define your own test steps, from simple clicks to more complex interactions, all within a JSON config file.
-
-## 🚀 Quick Start Guide
-
-Ready to get started? Here's how to get up and running in a few minutes.
-
-#### 1. Prerequisites
-
-Make sure you have these installed and ready to go:
-
-- **Python 3.8+**
-- **Android SDK:** Make sure the `ANDROID_HOME` environment variable is set.
-- **Appium Server:** You'll need this to communicate with the emulators. You can install it via npm: `npm install -g appium`.
-- **Your Emulators:** Have your Android SDK emulators (or BlueStacks instances) created and ready.
-
-#### 2. Setup
-
-Clone this repository and install the necessary Python packages.
+### Install
 
 ```bash
-# Clone the repo
-git clone <repository_url>
-cd <repository_directory>
-
-# Install dependencies
 pip install -r requirements.txt
 ```
 
-#### 3. Configuration
+### Configure
 
-This is the most important part! The tool needs to know about your setup.
+1. Edit `config.json`:
 
-1.  **Start Your Emulators & Appium Servers:** Before you do anything else, make sure your emulators are running and you have one Appium server running for each emulator, each on a different port (e.g., `appium -p 4723`, `appium -p 4724`).
-
-2.  **Run the GUI:**
-    ```bash
-    python gui.py
-    ```
-
-3.  **Fill out the GUI Config:**
-    - Point the `android_sdk_path` to your SDK folder.
-    - Click **Save Config**.
-    - Click **Validate Setup** to make sure everything is configured correctly!
-
-4.  **Edit `config.json` for Workers:**
-    - Open the `config.json` file.
-    - In the `parallel_workers` section, list all your running devices. You can get the `device_id` from the `adb devices` command.
-
-    ```json
+```json
+{
+    "accounts_file": "accounts.csv",
+    "wait_minutes": 10,
     "parallel_workers": [
-        {
-            "device_id": "emulator-5554",
-            "appium_port": 4723
-        },
-        {
-            "device_id": "emulator-5556",
-            "appium_port": 4724
-        }
-    ]
-    ```
+        {"device_id": "emulator-5554", "appium_port": 4723},
+        {"device_id": "emulator-5556", "appium_port": 4724}
+    ],
+    "automation_steps": {
+        "app_package": "com.your.app",
+        "actions": [
+            {"type": "wait", "duration_seconds": 5},
+            {"type": "scroll"},
+            {"type": "click", "text": "Accept"}
+        ]
+    }
+}
+```
 
-5.  **Add Your Accounts:**
-    - Open `accounts.csv` and add your test accounts in the `email,password,group_link` format.
+2. Add accounts to `accounts.csv`:
 
-#### 4. Run!
+```csv
+email,password,group_link,beta_link
+user1@gmail.com,pass1,https://groups.google.com/g/mygroup,https://play.google.com/apps/testing/com.your.app
+user2@gmail.com,pass2,https://groups.google.com/g/mygroup,https://play.google.com/apps/testing/com.your.app
+```
 
-- Head back to the GUI and click the **Run Automation** button. Sit back and watch the magic happen!
-- Once it's done, click **View Last Report** to see the results.
+### Run
 
-## 💡 Troubleshooting
+1. Start emulators
+2. Start Appium servers (one per emulator):
+   ```bash
+   appium -p 4723
+   appium -p 4724
+   ```
+3. Run automation:
+   ```bash
+   python main.py
+   ```
 
-- **Connection Errors?** Double-check that your Appium servers are running and the ports in `config.json` match.
-- **Device Not Found?** Make sure your emulators are fully booted before you run the automation and that the `device_id`s are correct.
-- **Validation Fails?** The log viewer in the GUI is your best friend! It will tell you exactly which check failed.
+Or use the GUI:
+```bash
+python gui.py
+```
 
-## 🤝 Contributing
+## Action Types
 
-Got an idea to make this even better? Feel free to open an issue or submit a pull request. All contributions are welcome!
+| Type | Description | Parameters |
+|------|-------------|------------|
+| `click` | Click element | `element_id`, `xpath`, or `text` |
+| `wait` | Wait | `duration_seconds` |
+| `scroll` | Scroll down | - |
+| `back` | Press back | - |
 
-## 📜 License
+## Notes
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+- Run daily for 14 days to meet Google's requirement
+- Use unique Google accounts (create with different recovery emails)
+- BlueStacks supported via `emulator_type: "bluestacks"`

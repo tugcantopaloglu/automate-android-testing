@@ -1,37 +1,30 @@
 {
-    "android_sdk_path": "/path/to/your/android/sdk",
+    "android_sdk_path": "",
     "accounts_file": "accounts.csv",
-    "app_apk_path": "/path/to/your/app.apk",
     "emulator_type": "sdk",
     "bluestacks_adb_port": 5555,
     "bluestacks_exe_path": "",
     "bluestacks_instance_name": "",
+    "wait_minutes": 10,
     "parallel_workers": [
         {
             "device_id": "emulator-5554",
             "appium_port": 4723
-        },
-        {
-            "device_id": "emulator-5556",
-            "appium_port": 4724
         }
     ],
     "automation_steps": {
-        "app_package": "com.example.app",
+        "app_package": "",
         "actions": [
-            {
-                "type": "click",
-                "description": "Click the main menu button",
-                "element_id": "com.example.app:id/menu_button"
-            },
             {
                 "type": "wait",
                 "duration_seconds": 5
             },
             {
-                "type": "click",
-                "description": "Click the settings option",
-                "element_id": "com.example.app:id/settings_option"
+                "type": "scroll"
+            },
+            {
+                "type": "wait",
+                "duration_seconds": 3
             }
         ]
     }
