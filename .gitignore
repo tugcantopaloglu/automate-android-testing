@@ -3,3 +3,8 @@
 /build/
 /dist/
 *.spec
+__pycache__/
+.venv/
+*.py[cod]
+/screenshots/fail_*.png
+/accounts.local.csv

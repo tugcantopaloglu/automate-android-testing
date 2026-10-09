@@ -30,11 +30,14 @@ def run_single_task(task_args):
 
     driver = None
     try:
-        driver = get_appium_driver(device_id, appium_port)
+        driver = get_appium_driver(device_id, appium_port, worker_config.get('system_port'))
         if not driver:
             raise RuntimeError(f"Driver init failed for {device_id}")
 
-        run_automation(driver, email, password, group_link, beta_link, global_config, result)
+        run_automation(
+            driver, email, password, group_link, beta_link, global_config, result,
+            worker_config=worker_config
+        )
 
     except Exception as e:
         logging.error(f"Task failed for {email}: {e}")
@@ -42,6 +45,33 @@ def run_single_task(task_args):
 
     logging.info(f"Task end: {email} - {result['status']}")
     return result
+
+def normalize_workers(workers):
+    normalized = []
+    device_ids = set()
+    ports = set()
+    for index, worker in enumerate(workers):
+        worker = dict(worker)
+        device_id = worker.get('device_id')
+        if not isinstance(device_id, str) or not device_id.strip():
+            raise ValueError('Each worker needs a device_id from adb devices.')
+        if device_id in device_ids:
+            raise ValueError(f'Duplicate device_id: {device_id}')
+        device_ids.add(device_id)
+        worker.setdefault('system_port', 8200 + index)
+        worker.setdefault('chromedriver_port', 9000 + index)
+        for key in ('appium_port', 'system_port', 'chromedriver_port'):
+            port = worker.get(key)
+            if type(port) is not int or not 1 <= port <= 65535:
+                raise ValueError(f'{key} must be an integer between 1 and 65535.')
+            if port in ports:
+                raise ValueError(f'Duplicate worker port: {port}')
+            ports.add(port)
+        normalized.append(worker)
+    return normalized
+
+def run_worker_tasks(tasks):
+    return [(index, run_single_task(task)) for index, task in tasks]
 
 def main():
     setup_logger()
@@ -54,9 +84,14 @@ def main():
     if not workers:
         logging.error("No workers in config")
         return
+    try:
+        workers = normalize_workers(workers)
+    except (TypeError, ValueError) as e:
+        logging.error(f'Invalid workers: {e}')
+        return
 
     try:
-        with open(accounts_file, 'r', newline='') as f:
+        with open(accounts_file, 'r', newline='', encoding='utf-8-sig') as f:
             accounts = list(csv.DictReader(f))
     except FileNotFoundError:
         logging.error(f"Accounts file not found: {accounts_file}")
@@ -68,20 +103,23 @@ def main():
 
     logging.info(f"Accounts: {len(accounts)}, Workers: {len(workers)}")
 
-    tasks = [(accounts[i], workers[i % len(workers)], config) for i in range(len(accounts))]
-    results = []
+    worker_tasks = [[] for _ in workers]
+    for index, account in enumerate(accounts):
+        worker_index = index % len(workers)
+        task = (account, workers[worker_index], config)
+        worker_tasks[worker_index].append((index, task))
+    indexed_results = []
 
     with ThreadPoolExecutor(max_workers=len(workers)) as executor:
-        futures = {executor.submit(run_single_task, t): t for t in tasks}
+        futures = [executor.submit(run_worker_tasks, tasks) for tasks in worker_tasks if tasks]
         for future in as_completed(futures):
             try:
-                results.append(future.result())
+                indexed_results.extend(future.result())
             except Exception as e:
                 logging.error(f"Task exception: {e}")
 
+    results = [result for _, result in sorted(indexed_results, key=lambda item: item[0])]
     if results:
-        email_order = [a['email'] for a in accounts]
-        results.sort(key=lambda r: email_order.index(r['email']) if r['email'] in email_order else 999)
         generate_html_report(results)
 
     success = sum(1 for r in results if r['status'] == 'Success')

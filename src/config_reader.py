@@ -4,10 +4,16 @@ import logging
 def read_config():
     """Reads the configuration file and returns the settings."""
     try:
-        with open('config.json', 'r') as f:
-            return json.load(f)
+        with open('config.json', 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        if not isinstance(config, dict):
+            raise ValueError('Configuration must be a JSON object.')
+        return config
     except FileNotFoundError:
         logging.error("Configuration file 'config.json' not found.")
+        return {}
+    except (ValueError, OSError) as e:
+        logging.error(f"Cannot read configuration file: {e}")
         return {}
 
 if __name__ == '__main__':

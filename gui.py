@@ -8,6 +8,7 @@ import json
 import os
 import webbrowser
 from threading import Thread
+from queue import Queue, Empty
 
 class AutomationGUI(tk.Tk):
     def __init__(self):
@@ -19,6 +20,7 @@ class AutomationGUI(tk.Tk):
 
         self.config_path = 'config.json'
         self.config_data = {}
+        self.automation_events = Queue()
 
         self.create_widgets()
         self.load_config()
@@ -75,23 +77,36 @@ class AutomationGUI(tk.Tk):
         automation_thread = Thread(target=self.run_automation, daemon=True)
         automation_thread.start()
         self.after(1000, self.update_log_viewer)
+        self.after(100, self.poll_automation)
 
     def run_automation(self):
-        from main import main as run_main_automation
+        error = None
         try:
+            from main import main as run_main_automation
             run_main_automation()
-            self.status_var.set("Status: Finished. See report.html for details.")
         except Exception as e:
-            self.status_var.set(f"Status: Error! Check logs.")
-            messagebox.showerror("Runtime Error", str(e))
+            error = str(e)
         finally:
-            self.run_button.config(state='normal')
-            if os.path.exists('report.html'):
-                self.report_button.config(state='normal')
+            self.automation_events.put(error)
+
+    def poll_automation(self):
+        try:
+            error = self.automation_events.get_nowait()
+        except Empty:
+            self.after(100, self.poll_automation)
+            return
+        if error is None:
+            self.status_var.set("Status: Finished. See report.html for details.")
+        else:
+            self.status_var.set("Status: Error! Check logs.")
+            messagebox.showerror("Runtime Error", error)
+        self.run_button.config(state='normal')
+        if os.path.exists('report.html'):
+            self.report_button.config(state='normal')
 
     def update_log_viewer(self):
         try:
-            with open('automation.log', 'r') as f:
+            with open('automation.log', 'r', encoding='utf-8') as f:
                 log_content = f.read()
             self.log_text.config(state='normal')
             self.log_text.delete('1.0', tk.END)
@@ -105,7 +120,7 @@ class AutomationGUI(tk.Tk):
 
     def load_config(self):
         try:
-            with open(self.config_path, 'r') as f:
+            with open(self.config_path, 'r', encoding='utf-8') as f:
                 self.config_data = json.load(f)
             for key, var in self.config_vars.items():
                 var.set(self.config_data.get(key, ''))
@@ -120,7 +135,7 @@ class AutomationGUI(tk.Tk):
         for key, var in self.config_vars.items():
             self.config_data[key] = var.get()
         try:
-            with open(self.config_path, 'w') as f:
+            with open(self.config_path, 'w', encoding='utf-8') as f:
                 json.dump(self.config_data, f, indent=4)
             messagebox.showinfo("Success", "Configuration saved successfully.")
         except Exception as e:
@@ -156,7 +171,7 @@ class AutomationGUI(tk.Tk):
         if not os.path.exists(accounts_file):
             errors.append(f"Accounts file '{accounts_file}' not found.")
         else:
-            with open(accounts_file, 'r') as f:
+            with open(accounts_file, 'r', encoding='utf-8-sig') as f:
                 if len(f.readlines()) <= 1:
                     errors.append("Accounts file is empty.")
         self.log_text.config(state='normal')
@@ -169,11 +184,17 @@ class AutomationGUI(tk.Tk):
             errors.append("No parallel_workers defined in config.json.")
         else:
             import socket
-            for i, worker in enumerate(workers):
-                port = worker.get('appium_port')
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    if s.connect_ex(('127.0.0.1', port)) != 0:
-                        errors.append(f"Worker {i+1}: Appium server not listening on port {port}.")
+            from main import normalize_workers
+            try:
+                workers = normalize_workers(workers)
+                for i, worker in enumerate(workers):
+                    port = worker['appium_port']
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        s.settimeout(1)
+                        if s.connect_ex(('127.0.0.1', port)) != 0:
+                            errors.append(f"Worker {i+1}: Appium server not listening on port {port}.")
+            except (TypeError, ValueError, OSError) as e:
+                errors.append(f'Worker configuration invalid: {e}')
         self.log_text.config(state='normal')
         self.log_text.insert(tk.END, f"[CHECK] Appium Workers: {'FAIL' if any('Worker' in e or 'parallel_workers' in e for e in errors) else 'OK'}\n")
         self.log_text.config(state='disabled')

@@ -7,7 +7,7 @@ def setup_logger():
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
         handlers=[
-            logging.FileHandler("automation.log"),
+            logging.FileHandler("automation.log", encoding='utf-8'),
             logging.StreamHandler(sys.stdout)
         ]
     )

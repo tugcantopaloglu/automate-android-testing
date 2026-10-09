@@ -4,6 +4,20 @@
 
 import time
 import logging
+from html import escape
+from pathlib import Path
+from urllib.parse import quote
+
+def screenshot_href(path):
+    try:
+        root = (Path.cwd() / 'screenshots').resolve()
+        screenshot = Path(path).resolve()
+        relative = screenshot.relative_to(root)
+        if screenshot.suffix.lower() != '.png':
+            return None
+        return quote((Path('screenshots') / relative).as_posix(), safe='/')
+    except (OSError, TypeError, ValueError):
+        return None
 
 def generate_html_report(results):
     """Generates an HTML report from a list of result dictionaries."""
@@ -30,7 +44,7 @@ def generate_html_report(results):
     """
 
     # --- HTML Structure ---
-    html_content = f"""<html><head><title>Automation Test Report</title>{styles}</head><body><div class="container">"""
+    html_content = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Automation Test Report</title>{styles}</head><body><div class="container">"""
     html_content += "<h1>Automation Test Report</h1>"
     generation_time = time.strftime("%Y-%m-%d %H:%M:%S")
     html_content += f"<p>Generated on: {generation_time}</p>"
@@ -49,12 +63,13 @@ def generate_html_report(results):
     html_content += "<table><tr><th>#</th><th>Account</th><th>Status</th><th>Details</th><th>Screenshot</th></tr>"
     for i, result in enumerate(results):
         status_class = 'status-success' if result['status'] == 'Success' else 'status-failure'
-        screenshot_link = f'<a href="{result["screenshot_path"]}" target="_blank">View</a>' if result.get("screenshot_path") else "N/A"
+        href = screenshot_href(result.get('screenshot_path')) if result.get('screenshot_path') else None
+        screenshot_link = f'<a href="{escape(href, quote=True)}" target="_blank" rel="noopener">View</a>' if href else 'N/A'
         html_content += f"""<tr>
             <td>{i+1}</td>
-            <td>{result['email']}</td>
-            <td><span class="{status_class}">{result['status'].upper()}</span></td>
-            <td>{result['details']}</td>
+            <td>{escape(str(result['email']))}</td>
+            <td><span class="{status_class}">{escape(str(result['status']).upper())}</span></td>
+            <td>{escape(str(result['details']))}</td>
             <td>{screenshot_link}</td>
         </tr>"""
     
@@ -62,7 +77,7 @@ def generate_html_report(results):
 
     # --- Write to file ---
     try:
-        with open("report.html", "w") as f:
+        with open("report.html", "w", encoding='utf-8') as f:
             f.write(html_content)
         logging.info("Successfully generated HTML report: report.html")
     except Exception as e:

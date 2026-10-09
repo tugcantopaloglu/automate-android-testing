@@ -3,23 +3,28 @@
 import time
 import os
 import logging
+import uuid
+from urllib.parse import urlsplit
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.common.appiumby import AppiumBy
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import TimeoutException, WebDriverException
 
 CHROME_PACKAGE = 'com.android.chrome'
 PLAY_STORE_PACKAGE = 'com.android.vending'
 
-def get_appium_driver(emulator_name, appium_port=4723):
+def get_appium_driver(emulator_name, appium_port=4723, system_port=None):
     options = UiAutomator2Options()
     options.platform_name = 'Android'
     options.device_name = emulator_name
+    options.udid = emulator_name
     options.automation_name = 'UiAutomator2'
     options.no_reset = True
     options.full_reset = False
+    if system_port is not None:
+        options.system_port = system_port
     
     try:
         driver = webdriver.Remote(f'http://127.0.0.1:{appium_port}', options=options)
@@ -29,13 +34,18 @@ def get_appium_driver(emulator_name, appium_port=4723):
         logging.error(f"Driver init failed: {e}")
         return None
 
-def get_chrome_driver(emulator_name, appium_port=4723):
+def get_chrome_driver(emulator_name, appium_port=4723, system_port=None, chromedriver_port=None):
     options = UiAutomator2Options()
     options.platform_name = 'Android'
     options.device_name = emulator_name
+    options.udid = emulator_name
     options.automation_name = 'UiAutomator2'
     options.browser_name = 'Chrome'
     options.no_reset = True
+    if system_port is not None:
+        options.system_port = system_port
+    if chromedriver_port is not None:
+        options.chromedriver_port = chromedriver_port
     
     try:
         driver = webdriver.Remote(f'http://127.0.0.1:{appium_port}', options=options)
@@ -69,7 +79,7 @@ def safe_click(driver, by, value):
         el = driver.find_element(by, value)
         el.click()
         return True
-    except:
+    except WebDriverException:
         return False
 
 def google_login(driver, email, password):
@@ -189,6 +199,14 @@ def install_from_playstore(driver, app_package):
     logging.warning("Install button not found")
     return False
 
+def xpath_literal(value):
+    if '"' not in value:
+        return f'"{value}"'
+    if "'" not in value:
+        return f"'{value}'"
+    parts = [f'"{part}"' for part in value.split('"')]
+    return 'concat(' + ', \'"\', '.join(parts) + ')'
+
 def open_app_and_interact(driver, app_package, actions):
     logging.info(f"Opening app: {app_package}")
     
@@ -211,11 +229,15 @@ def open_app_and_interact(driver, app_package, actions):
                 text = action.get('text')
                 
                 if element_id:
-                    safe_click(driver, AppiumBy.ID, element_id)
+                    clicked = safe_click(driver, AppiumBy.ID, element_id)
                 elif xpath:
-                    safe_click(driver, AppiumBy.XPATH, xpath)
+                    clicked = safe_click(driver, AppiumBy.XPATH, xpath)
                 elif text:
-                    safe_click(driver, AppiumBy.XPATH, f'//*[contains(@text,"{text}")]')
+                    clicked = safe_click(driver, AppiumBy.XPATH, f'//*[contains(@text,{xpath_literal(text)})]')
+                else:
+                    raise ValueError('Click action requires element_id, xpath, or text.')
+                if not clicked:
+                    raise RuntimeError(f'Click action failed: {desc}')
                 time.sleep(2)
                 
             elif action_type == 'wait':
@@ -223,32 +245,66 @@ def open_app_and_interact(driver, app_package, actions):
                 time.sleep(duration)
                 
             elif action_type == 'scroll':
-                driver.swipe(500, 1500, 500, 500, 1000)
+                size = driver.get_window_size()
+                x = int(size['width'] * 0.5)
+                driver.swipe(x, int(size['height'] * 0.8), x, int(size['height'] * 0.2), 1000)
                 time.sleep(1)
                 
             elif action_type == 'back':
                 driver.back()
                 time.sleep(1)
+            else:
+                raise ValueError(f'Unknown action type: {action_type}')
                 
         except Exception as e:
             logging.warning(f"Action failed: {e}")
-            continue
+            return False
     
     return True
 
-def run_automation(driver, email, password, group_link, beta_link, config, result_details):
+def wait_with_session(driver, seconds):
+    while seconds > 0:
+        interval = min(seconds, 30)
+        time.sleep(interval)
+        driver.current_package
+        seconds -= interval
+
+def run_automation(driver, email, password, group_link, beta_link, config, result_details, worker_config=None):
     chrome_driver = None
+    app_driver = None
+    result_details['status'] = 'Failure'
+    result_details['screenshot_path'] = None
     
     try:
         logging.info(f"Starting automation for {email}")
         
-        device_id = driver.capabilities.get('deviceName', 'unknown')
-        appium_url = driver.command_executor._url
-        port = int(appium_url.split(':')[-1].split('/')[0]) if appium_url else 4723
+        app_package = config.get('automation_steps', {}).get('app_package')
+        if not isinstance(app_package, str) or not app_package.strip():
+            raise ValueError('automation_steps.app_package must be configured.')
+        wait_seconds = float(config.get('wait_minutes', 10)) * 60
+        if not 0 <= wait_seconds < float('inf'):
+            raise ValueError('wait_minutes must be a finite non-negative number.')
+
+        if worker_config is not None:
+            device_id = worker_config['device_id']
+            port = worker_config['appium_port']
+            system_port = worker_config.get('system_port')
+            chromedriver_port = worker_config.get('chromedriver_port')
+        else:
+            capabilities = driver.capabilities
+            device_id = (capabilities.get('appium:udid') or capabilities.get('udid')
+                         or capabilities.get('deviceUDID') or capabilities.get('deviceName'))
+            if not device_id:
+                raise ValueError('Driver did not identify the configured device.')
+            appium_url = driver.command_executor.client_config.remote_server_addr
+            port = urlsplit(appium_url).port or 4723
+            system_port = capabilities.get('appium:systemPort', capabilities.get('systemPort'))
+            chromedriver_port = capabilities.get('appium:chromedriverPort', capabilities.get('chromedriverPort'))
         
         driver.quit()
+        driver = None
         
-        chrome_driver = get_chrome_driver(device_id, port)
+        chrome_driver = get_chrome_driver(device_id, port, system_port, chromedriver_port)
         if not chrome_driver:
             raise RuntimeError("Failed to init Chrome driver")
         
@@ -256,28 +312,32 @@ def run_automation(driver, email, password, group_link, beta_link, config, resul
             raise RuntimeError("Login failed")
         
         if group_link and group_link.strip():
-            join_google_group(chrome_driver, group_link)
+            if not join_google_group(chrome_driver, group_link):
+                raise RuntimeError('Group join step failed')
         
         if beta_link and beta_link.strip():
-            accept_beta(chrome_driver, beta_link)
+            if not accept_beta(chrome_driver, beta_link):
+                raise RuntimeError('Beta acceptance step failed')
         
-        app_package = config.get('automation_steps', {}).get('app_package')
-        if app_package:
-            install_from_playstore(chrome_driver, app_package)
+        if not install_from_playstore(chrome_driver, app_package):
+            raise RuntimeError('Play Store install step failed')
         
         chrome_driver.quit()
         chrome_driver = None
         
-        app_driver = get_appium_driver(device_id, port)
-        if app_driver and app_package:
-            actions = config.get('automation_steps', {}).get('actions', [])
-            open_app_and_interact(app_driver, app_package, actions)
-            
-            wait_minutes = config.get('wait_minutes', 10)
-            logging.info(f"Waiting {wait_minutes} minutes...")
-            time.sleep(wait_minutes * 60)
-            
-            app_driver.quit()
+        app_driver = get_appium_driver(device_id, port, system_port)
+        if not app_driver:
+            raise RuntimeError('Failed to init app driver')
+        if not app_driver.is_app_installed(app_package):
+            raise RuntimeError(f'App is not installed on the configured device: {app_package}')
+        actions = config.get('automation_steps', {}).get('actions', [])
+        if not open_app_and_interact(app_driver, app_package, actions):
+            raise RuntimeError('App interaction failed')
+
+        logging.info(f'Waiting {wait_seconds / 60} minutes...')
+        wait_with_session(app_driver, wait_seconds)
+        app_driver.quit()
+        app_driver = None
         
         result_details['status'] = 'Success'
         result_details['details'] = 'Completed'
@@ -287,24 +347,22 @@ def run_automation(driver, email, password, group_link, beta_link, config, resul
         logging.error(f"Automation failed: {e}")
         result_details['details'] = str(e)
         
-        screenshots_dir = 'screenshots'
-        os.makedirs(screenshots_dir, exist_ok=True)
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
-        screenshot_path = os.path.join(screenshots_dir, f"fail_{email}_{timestamp}.png")
-        
-        active_driver = chrome_driver if chrome_driver else driver
+        active_driver = app_driver or chrome_driver or driver
         try:
             if active_driver:
-                active_driver.save_screenshot(screenshot_path)
-                result_details['screenshot_path'] = screenshot_path
-        except:
-            pass
+                os.makedirs('screenshots', exist_ok=True)
+                screenshot_path = os.path.join('screenshots', f'fail_{uuid.uuid4().hex}.png')
+                if active_driver.save_screenshot(screenshot_path):
+                    result_details['screenshot_path'] = screenshot_path
+        except Exception as screenshot_error:
+            logging.warning(f'Failure screenshot unavailable: {screenshot_error}')
         
         raise
     
     finally:
-        if chrome_driver:
-            try:
-                chrome_driver.quit()
-            except:
-                pass
+        for active_driver in (app_driver, chrome_driver, driver):
+            if active_driver:
+                try:
+                    active_driver.quit()
+                except Exception as cleanup_error:
+                    logging.warning(f'Driver cleanup failed: {cleanup_error}')
